@@ -39,7 +39,7 @@ let timerState = {
 
 let tickInterval = null;
 
-// --- mémorisation position/taille fenêtré ---
+// fenetre mode "fenetre" : position/taille sauvegardees
 let lastWindowedBounds = null;
 const boundsFile = () => path.join(app.getPath("userData"), "windowedBounds.json");
 
@@ -48,7 +48,7 @@ function loadBoundsFromDisk() {
     const p = boundsFile();
     if (fs.existsSync(p)) {
       const obj = JSON.parse(fs.readFileSync(p, "utf8"));
-      if (obj && typeof obj.x === "number" && typeof obj.y === "number") {
+      if (obj && Number.isFinite(obj.x) && Number.isFinite(obj.y) && Number.isFinite(obj.width) && Number.isFinite(obj.height)) {
         lastWindowedBounds = obj;
       }
     }
@@ -67,8 +67,8 @@ function saveBoundsToDisk(bounds) {
 
 function createControlWindow() {
   controlWin = new BrowserWindow({
-    width: 520,
-    height: 720,
+    width: 560,
+    height: 820,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -82,6 +82,7 @@ function createControlWindow() {
   controlWin.once("ready-to-show", () => {
     controlWin.show();
     controlWin.focus();
+    broadcastState();
   });
 
   controlWin.on("closed", () => {
@@ -97,7 +98,6 @@ function getTargetDisplay() {
     if (found) return found;
   }
 
-  // par défaut : dernier écran
   return displays[displays.length - 1] || screen.getPrimaryDisplay();
 }
 
@@ -124,23 +124,23 @@ function createDisplayWindow() {
   displayWin.setMenuBarVisibility(false);
   displayWin.loadFile(path.join(__dirname, "renderer", "display.html"));
 
-  // ✅ IMPORTANT : enregistrer position/taille quand tu bouges/redimensionnes (fenêtré)
+  // memoriser position/taille quand tu bouges/redimensionnes (si pas fullscreen)
   const rememberBounds = () => {
     try {
       if (!displayWin) return;
-      if (displayWin.isFullScreen()) return; // on ne mémorise pas en plein écran
+      if (displayWin.isFullScreen()) return;
       const bds = displayWin.getBounds();
       lastWindowedBounds = bds;
       saveBoundsToDisk(bds);
     } catch {}
   };
-
   displayWin.on("move", rememberBounds);
   displayWin.on("resize", rememberBounds);
 
   displayWin.once("ready-to-show", () => {
-    placeDisplayWindow({ force: true });
+    placeDisplayWindow(true);
     displayWin.show();
+    broadcastState();
   });
 
   displayWin.on("closed", () => {
@@ -148,8 +148,8 @@ function createDisplayWindow() {
   });
 }
 
-// options: { force: boolean }
-function placeDisplayWindow(options = {}) {
+// force=true : on repositionne vraiment (changement ecran / fullscreen)
+function placeDisplayWindow(force = false) {
   if (!displayWin) return;
 
   const target = getTargetDisplay();
@@ -158,35 +158,32 @@ function placeDisplayWindow(options = {}) {
   const bounds = target.bounds;
   const wantFull = !!timerState.fullscreen;
 
-  // Toujours sortir du fullscreen avant de déplacer
+  // sortir du fullscreen avant de bouger
   if (displayWin.isFullScreen()) displayWin.setFullScreen(false);
 
   if (!wantFull) {
-    // Fenêtré : on garde les bounds existants si l'utilisateur a déjà bougé la fenêtre
+    // en fenetre, on garde la position/taille
     if (lastWindowedBounds) {
       displayWin.setBounds(lastWindowedBounds, false);
     } else {
-      // première fois : centré + taille défaut
-      const width = 900;
-      const height = 500;
+      const width = 900, height = 500;
       const x = Math.round(bounds.x + (bounds.width - width) / 2);
       const y = Math.round(bounds.y + (bounds.height - height) / 2);
-      displayWin.setBounds({ x, y, width, height }, false);
+      const bds = { x, y, width, height };
+      displayWin.setBounds(bds, false);
+      lastWindowedBounds = bds;
+      saveBoundsToDisk(bds);
     }
+
     displayWin.setAlwaysOnTop(true, "screen-saver");
     return;
   }
 
-  // Plein écran : coller à l'écran choisi
-  displayWin.setBounds(
-    { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height },
-    false
-  );
+  // plein ecran sur l'ecran choisi
+  displayWin.setBounds({ x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height }, false);
   displayWin.setFullScreen(true);
   displayWin.setAlwaysOnTop(true, "screen-saver");
 }
-
-// --------- Timer logic ---------
 
 function startTicker() {
   if (tickInterval) return;
@@ -210,12 +207,12 @@ function broadcastState() {
   if (displayWin) displayWin.webContents.send("timer:state", timerState);
 }
 
-// --------- IPC ---------
+// ---------------- IPC ----------------
 
 ipcMain.handle("app:getDisplays", () => {
   return screen.getAllDisplays().map(d => ({
     id: d.id,
-    label: `${d.id} — ${d.size.width}x${d.size.height} (${d.bounds.x},${d.bounds.y})`
+    label: `${d.id} - ${d.size.width}x${d.size.height} (${d.bounds.x},${d.bounds.y})`
   }));
 });
 
@@ -230,23 +227,22 @@ ipcMain.handle("display:close", () => {
   displayWin = null;
   return true;
 });
-// ✅ NOUVEAU : lire les bounds actuels de la fenêtre Timer
+
+// ✅ Bounds: lire/appliquer depuis la fenetre controle
 ipcMain.handle("display:getBounds", () => {
   if (!displayWin) return null;
-  return displayWin.getBounds(); // {x,y,width,height}
+  return displayWin.getBounds();
 });
 
-// ✅ NOUVEAU : appliquer des bounds (fenêtré) à la fenêtre Timer
 ipcMain.handle("display:setBounds", (_evt, bds) => {
   if (!displayWin) return false;
 
-  // On force le mode fenêtré si on applique une position/taille
+  // forcer mode fenetre
   timerState.fullscreen = false;
 
   try {
     if (displayWin.isFullScreen()) displayWin.setFullScreen(false);
 
-    // Sécurités : nombres + minimums
     const x = Number(bds?.x);
     const y = Number(bds?.y);
     const width = Math.max(200, Number(bds?.width) || 900);
@@ -255,12 +251,10 @@ ipcMain.handle("display:setBounds", (_evt, bds) => {
     if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
 
     const next = { x, y, width, height };
-
     displayWin.setBounds(next, false);
 
-    // mémorise pour les prochains lancements (si tu as lastWindowedBounds + saveBoundsToDisk)
-    if (typeof lastWindowedBounds !== "undefined") lastWindowedBounds = next;
-    if (typeof saveBoundsToDisk === "function") saveBoundsToDisk(next);
+    lastWindowedBounds = next;
+    saveBoundsToDisk(next);
 
     displayWin.setAlwaysOnTop(true, "screen-saver");
     broadcastState();
@@ -271,9 +265,7 @@ ipcMain.handle("display:setBounds", (_evt, bds) => {
   }
 });
 
-
 ipcMain.handle("timer:setConfig", (_evt, cfg) => {
-  // 🔒 on sauvegarde l'état avant modif pour savoir si on doit repositionner
   const prevFullscreen = timerState.fullscreen;
   const prevMonitorId = timerState.monitorId;
 
@@ -287,14 +279,13 @@ ipcMain.handle("timer:setConfig", (_evt, cfg) => {
     timerState.remainingMs = timerState.durationMs;
   }
 
-  // ✅ Ne repositionner QUE si écran/plein écran change
+  // repositionner seulement si ecran ou fullscreen change
   const monitorChanged = (cfg.monitorId != null && Number(cfg.monitorId) !== prevMonitorId);
   const fullscreenChanged = (typeof cfg.fullscreen === "boolean" && cfg.fullscreen !== prevFullscreen);
 
   if (displayWin && (monitorChanged || fullscreenChanged)) {
-    // si on change d'écran, on évite un vieux bounds fenêtré hors écran
-    if (monitorChanged) lastWindowedBounds = null;
-    placeDisplayWindow({ force: true });
+    if (monitorChanged) lastWindowedBounds = null; // evite bounds hors ecran
+    placeDisplayWindow(true);
   }
 
   broadcastState();
@@ -317,28 +308,4 @@ ipcMain.handle("timer:start", () => {
   return timerState;
 });
 
-ipcMain.handle("timer:pause", () => {
-  if (!timerState.running) return timerState;
-  timerState.remainingMs = Math.max(0, timerState.endTime - Date.now());
-  timerState.running = false;
-  broadcastState();
-  return timerState;
-});
-
-// --------- App lifecycle ---------
-
-app.whenReady().then(() => {
-  safeLog("App ready. __dirname =", __dirname);
-  loadBoundsFromDisk();
-  createControlWindow();
-  startTicker();
-
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createControlWindow();
-  });
-});
-
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
-});
-
+ipcMain.handle("timer:pause", () =>
