@@ -36,6 +36,15 @@ const els = {
     bgMode: document.getElementById("bgMode"),
     bgColor: document.getElementById("bgColor"),
     fontScale: document.getElementById("fontScale")
+        
+    posX: document.getElementById("posX"),
+    posY: document.getElementById("posY"),
+    posW: document.getElementById("posW"),
+    posH: document.getElementById("posH"),
+    btnReadBounds: document.getElementById("btnReadBounds"),
+    btnApplyBounds: document.getElementById("btnApplyBounds"),
+
+    
 };
 
 let currentState = null;
@@ -122,8 +131,34 @@ window.api.onState((state) => {
     els.blinkEnabled.checked = !!state.blinkEnabled;
     els.fontScale.value = String(state.fontScale ?? 1.0);
 });
+els.btnReadBounds.addEventListener("click", async () => {
+  const b = await window.api.getDisplayBounds();
+  if (!b) return;
+
+  els.posX.value = b.x;
+  els.posY.value = b.y;
+  els.posW.value = b.width;
+  els.posH.value = b.height;
+});
+
+els.btnApplyBounds.addEventListener("click", async () => {
+  // Force le mode fenêtré pour que les bounds s'appliquent
+  els.modeSelect.value = "false";
+  await applyFromUI(); // applique fullscreen=false + autres réglages
+
+  const bounds = {
+    x: Number(els.posX.value),
+    y: Number(els.posY.value),
+    width: Number(els.posW.value),
+    height: Number(els.posH.value)
+  };
+
+  await window.api.setDisplayBounds(bounds);
+});
+
 
 (async function init() {
     await refreshDisplays();
     // ouvre automatiquement la liste, mais n'ouvre pas la fenêtre timer
 })();
+
