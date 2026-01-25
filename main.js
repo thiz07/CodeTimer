@@ -230,6 +230,47 @@ ipcMain.handle("display:close", () => {
   displayWin = null;
   return true;
 });
+// ✅ NOUVEAU : lire les bounds actuels de la fenêtre Timer
+ipcMain.handle("display:getBounds", () => {
+  if (!displayWin) return null;
+  return displayWin.getBounds(); // {x,y,width,height}
+});
+
+// ✅ NOUVEAU : appliquer des bounds (fenêtré) à la fenêtre Timer
+ipcMain.handle("display:setBounds", (_evt, bds) => {
+  if (!displayWin) return false;
+
+  // On force le mode fenêtré si on applique une position/taille
+  timerState.fullscreen = false;
+
+  try {
+    if (displayWin.isFullScreen()) displayWin.setFullScreen(false);
+
+    // Sécurités : nombres + minimums
+    const x = Number(bds?.x);
+    const y = Number(bds?.y);
+    const width = Math.max(200, Number(bds?.width) || 900);
+    const height = Math.max(120, Number(bds?.height) || 500);
+
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+
+    const next = { x, y, width, height };
+
+    displayWin.setBounds(next, false);
+
+    // mémorise pour les prochains lancements (si tu as lastWindowedBounds + saveBoundsToDisk)
+    if (typeof lastWindowedBounds !== "undefined") lastWindowedBounds = next;
+    if (typeof saveBoundsToDisk === "function") saveBoundsToDisk(next);
+
+    displayWin.setAlwaysOnTop(true, "screen-saver");
+    broadcastState();
+    return true;
+  } catch (e) {
+    safeLog("display:setBounds error:", String(e));
+    return false;
+  }
+});
+
 
 ipcMain.handle("timer:setConfig", (_evt, cfg) => {
   // 🔒 on sauvegarde l'état avant modif pour savoir si on doit repositionner
@@ -300,3 +341,4 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+
