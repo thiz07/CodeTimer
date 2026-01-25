@@ -56,12 +56,13 @@ body {
   height: 44px;               /* zone facile à attraper */
   -webkit-app-region: drag;   /* <-- magique : permet de déplacer */
   z-index: 9999;              /* au-dessus du reste */
-  background: rgba(255, 255, 255, 0.01); /* quasi invisible mais "cliquable" */
+  background: rgba(255, 255, 255, 0.15); /* quasi invisible mais "cliquable" */
 }
 
 /* Tout le reste ne doit PAS empêcher le dragbar */
 #wrap, #time {
   -webkit-app-region: no-drag;
 }
+
 
 
