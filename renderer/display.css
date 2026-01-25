@@ -1,68 +1,29 @@
-﻿html, body {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-}
-
-body {
-    background: transparent;
-    overflow: hidden;
-}
+html, body { width:100%; height:100%; margin:0; }
+body { background: transparent; overflow: hidden; }
 
 #wrap {
-    width: 100%;
-    height: 100%;
-    display: grid;
-    place-items: center;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
 }
 
 #time {
-    font-family: ui-sans-serif, system-ui, Arial, sans-serif;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    font-size: min(28vw, 260px);
-    line-height: 1;
-    padding: 0.15em 0.25em;
-    border-radius: 24px;
-    color: white;
-    text-shadow: 0 6px 30px rgba(0,0,0,0.55);
+  font-family: ui-sans-serif, system-ui, Arial, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  font-size: min(28vw, 260px);
+  line-height: 1;
+  padding: 0.15em 0.25em;
+  border-radius: 24px;
+  color: white;
+  text-shadow: 0 6px 30px rgba(0,0,0,0.55);
 }
 
-/* clignotement rouge */
-.blink {
-    animation: blinkRed 0.8s steps(2, end) infinite;
-}
-
+.blink { animation: blinkRed 0.8s steps(2, end) infinite; }
 @keyframes blinkRed {
-    0% {
-        color: #ff2b2b;
-    }
-
-    50% {
-        color: #ffffff;
-    }
-
-    100% {
-        color: #ff2b2b;
-    }
+  0% { color:#ff2b2b; }
+  50% { color:#ffffff; }
+  100% { color:#ff2b2b; }
 }
-
-.zero {
-    color: #ff2b2b;
-}
-#dragbar {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 44px;               /* zone facile à attraper */
-  -webkit-app-region: drag;   /* <-- magique : permet de déplacer */
-  z-index: 9999;              /* au-dessus du reste */
-  background: rgba(255, 255, 255, 0.15); /* quasi invisible mais "cliquable" */
-}
-
-/* Tout le reste ne doit PAS empêcher le dragbar */
-#wrap, #time {
-  -webkit-app-region: no-drag;
-}
-
-
-
+.zero { color:#ff2b2b; }
