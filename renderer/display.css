@@ -51,15 +51,18 @@ body {
     color: #ff2b2b;
 }
 #dragbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 32px;
-    -webkit-app-region: drag; /* zone de déplacement */
-    background: transparent;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 44px;               /* zone facile à attraper */
+  -webkit-app-region: drag;   /* <-- magique : permet de déplacer */
+  z-index: 9999;              /* au-dessus du reste */
+  background: rgba(255, 255, 255, 0.01); /* quasi invisible mais "cliquable" */
 }
 
+/* Tout le reste ne doit PAS empêcher le dragbar */
 #wrap, #time {
-    -webkit-app-region: no-drag; /* le reste reste “normal” */
+  -webkit-app-region: no-drag;
 }
+
+}
+
