@@ -308,4 +308,23 @@ ipcMain.handle("timer:start", () => {
   return timerState;
 });
 
-ipcMain.handle("timer:pause", () =>
+ipcMain.handle("timer:pause", () => {
+  if (!timerState.running) return timerState;
+  timerState.remainingMs = Math.max(0, timerState.endTime - Date.now());
+  timerState.running = false;
+  broadcastState();
+  return timerState;
+});
+
+// -------------- lifecycle --------------
+
+app.whenReady().then(() => {
+  safeLog("App ready. __dirname =", __dirname);
+  loadBoundsFromDisk();
+  createControlWindow();
+  startTicker();
+});
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
