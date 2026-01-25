@@ -6,9 +6,8 @@ contextBridge.exposeInMainWorld("api", {
   openDisplay: () => ipcRenderer.invoke("display:open"),
   closeDisplay: () => ipcRenderer.invoke("display:close"),
 
-  // ✅ NOUVEAU : lire/appliquer la position/taille de la fenêtre Timer
   getDisplayBounds: () => ipcRenderer.invoke("display:getBounds"),
-  setDisplayBounds: (bounds) => ipcRenderer.invoke("display:setBounds", bounds),
+  setDisplayBounds: (bds) => ipcRenderer.invoke("display:setBounds", bds),
 
   setConfig: (cfg) => ipcRenderer.invoke("timer:setConfig", cfg),
 
