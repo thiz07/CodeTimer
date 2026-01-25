@@ -1,3 +1,15 @@
+const debugEl = document.getElementById("debug");
+
+function setDebug(msg) {
+  if (debugEl) debugEl.textContent = msg;
+}
+
+if (!window.api) {
+  setDebug("ERROR: window.api is missing (preload not loaded)");
+} else {
+  setDebug("OK: window.api loaded");
+}
+
 function pad2(n) { return String(n).padStart(2, "0"); }
 
 function formatMs(ms) {
@@ -33,3 +45,4 @@ window.api.onState((state) => {
   if (shouldBlink) timeEl.classList.add("blink");
   if (state.remainingMs <= 0) timeEl.classList.add("zero");
 });
+
