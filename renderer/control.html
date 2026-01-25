@@ -1,125 +1,121 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CodeTimer — Contrôle</title>
-    <link rel="stylesheet" href="control.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CodeTimer - Control</title>
+  <link rel="stylesheet" href="control.css">
 </head>
 <body>
-    <h1>CodeTimer — Réglages</h1>
+  <h1>CodeTimer - Control</h1>
 
-    <section class="card">
-        <h2>Fenêtre retour</h2>
+  <section class="card">
+    <h2>Display (timer window)</h2>
+
+    <div class="row">
+      <button id="btnOpenDisplay">Open timer window</button>
+      <button id="btnCloseDisplay" class="secondary">Close</button>
+    </div>
+
+    <label>Monitor</label>
+    <select id="monitorSelect"></select>
+
+    <label>Mode</label>
+    <select id="modeSelect">
+      <option value="true">Fullscreen</option>
+      <option value="false">Windowed</option>
+    </select>
+  </section>
+
+  <section class="card">
+    <h2>Timer</h2>
+
+    <div class="grid2">
+      <div>
+        <label>Duration (MM:SS)</label>
         <div class="row">
-            <button id="btnOpenDisplay">Ouvrir fenêtre Timer</button>
-            <button id="btnCloseDisplay" class="secondary">Fermer</button>
+          <input id="durMin" type="number" min="0" max="999" value="15">
+          <span class="colon">:</span>
+          <input id="durSec" type="number" min="0" max="59" value="00">
         </div>
+      </div>
 
-        <label>Écran (monitor)</label>
-        <select id="monitorSelect"></select>
-
-        <label>Mode d’affichage</label>
-        <select id="modeSelect">
-            <option value="true">Plein écran</option>
-            <option value="false">Fenêtré</option>
-        </select>
-    </section>
-
-    <section class="card">
-        <h2>Timer</h2>
-
-        <div class="grid2">
-            <div>
-                <label>Durée (MM:SS)</label>
-                <div class="row">
-                    <input id="durMin" type="number" min="0" max="999" value="15">
-                    <span class="colon">:</span>
-                    <input id="durSec" type="number" min="0" max="59" value="00">
-                </div>
-            </div>
-
-            <div>
-                <label>Seuil clignotement (MM:SS)</label>
-                <div class="row">
-                    <input id="warnMin" type="number" min="0" max="999" value="3">
-                    <span class="colon">:</span>
-                    <input id="warnSec" type="number" min="0" max="59" value="00">
-                </div>
-                <label class="inline">
-                    <input id="blinkEnabled" type="checkbox" checked />
-                    Activer clignotement rouge
-                </label>
-            </div>
-        </div>
-
+      <div>
+        <label>Warn blink under (MM:SS)</label>
         <div class="row">
-            <button id="btnApply" class="secondary">Appliquer réglages</button>
-            <button id="btnReset" class="secondary">Reset</button>
+          <input id="warnMin" type="number" min="0" max="999" value="3">
+          <span class="colon">:</span>
+          <input id="warnSec" type="number" min="0" max="59" value="00">
         </div>
-
-        <div class="row">
-            <button id="btnStart" class="primary">Start</button>
-            <button id="btnPause">Pause</button>
-        </div>
-
-        <div class="status">
-            <div>Temps restant : <span id="remaining">--:--</span></div>
-            <div>État : <span id="running">STOP</span></div>
-        </div>
-    </section>
-
-    <section class="card">
-        <h2>Style</h2>
-
-        <label>Fond</label>
-        <select id="bgMode">
-            <option value="transparent">Transparent</option>
-            <option value="color">Couleur (chroma)</option>
-        </select>
-
-        <label>Couleur de fond (si “Couleur”)</label>
-        <input id="bgColor" type="color" value="#00ff00">
-
-        <label>Échelle police</label>
-        <input id="fontScale" type="range" min="0.6" max="2.2" step="0.05" value="1.0">
-        <div class="hint">Astuce : si tu incrustes via chroma, mets un vert/bleu franc.</div>
-    </section>
-
-    <section class="card">
-  <h2>Position / taille fenetre Timer (mode fenetre)</h2>
-
-  <div class="grid2">
-    <div>
-      <label>X</label>
-      <input id="posX" type="number" step="1" value="0">
+        <label class="inline">
+          <input id="blinkEnabled" type="checkbox" checked />
+          Enable red blink
+        </label>
+      </div>
     </div>
-    <div>
-      <label>Y</label>
-      <input id="posY" type="number" step="1" value="0">
+
+    <div class="row">
+      <button id="btnApply" class="secondary">Apply settings</button>
+      <button id="btnReset" class="secondary">Reset</button>
     </div>
-    <div>
-      <label>Largeur</label>
-      <input id="posW" type="number" step="1" value="900">
+
+    <div class="row">
+      <button id="btnStart" class="primary">Start</button>
+      <button id="btnPause">Pause</button>
     </div>
-    <div>
-      <label>Hauteur</label>
-      <input id="posH" type="number" step="1" value="500">
+
+    <div class="status">
+      <div>Remaining: <span id="remaining">--:--</span></div>
+      <div>Status: <span id="running">STOP</span></div>
     </div>
-  </div>
+  </section>
 
-  <div class="row">
-    <button id="btnReadBounds" class="secondary">Lire position actuelle</button>
-    <button id="btnApplyBounds" class="primary">Appliquer</button>
-  </div>
+  <section class="card">
+    <h2>Style</h2>
 
-  <div class="hint">
-    Astuce : X/Y sont des coordonnees Windows. Sur un 2e ecran a gauche, X peut etre negatif.
-  </div>
-</section>
+    <label>Background</label>
+    <select id="bgMode">
+      <option value="transparent">Transparent</option>
+      <option value="color">Color (chroma)</option>
+    </select>
 
+    <label>Background color</label>
+    <input id="bgColor" type="color" value="#00ff00">
 
-    <script src="control.js"></script>
+    <label>Font scale</label>
+    <input id="fontScale" type="range" min="0.6" max="2.2" step="0.05" value="1.0">
+  </section>
+
+  <section class="card">
+    <h2>Window position / size (windowed)</h2>
+
+    <div class="grid2">
+      <div>
+        <label>X</label>
+        <input id="posX" type="number" step="1" value="0">
+      </div>
+      <div>
+        <label>Y</label>
+        <input id="posY" type="number" step="1" value="0">
+      </div>
+      <div>
+        <label>Width</label>
+        <input id="posW" type="number" step="1" value="900">
+      </div>
+      <div>
+        <label>Height</label>
+        <input id="posH" type="number" step="1" value="500">
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="btnReadBounds" class="secondary">Read current</button>
+      <button id="btnApplyBounds" class="primary">Apply bounds</button>
+    </div>
+
+    <div class="hint">Tip: X can be negative if your second monitor is on the left.</div>
+  </section>
+
+  <script src="control.js"></script>
 </body>
 </html>
-
