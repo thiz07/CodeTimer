@@ -38,6 +38,8 @@ let timerState = {
 };
 
 let tickInterval = null;
+let lastWindowedBounds = null;
+
 
 // --------- Windows creation ---------
 
@@ -118,7 +120,7 @@ function placeDisplayWindow() {
     const b = target.bounds;
     const wantFull = !!timerState.fullscreen;
 
-    // sortir du fullscreen avant de déplacer
+    // sortir du fullscreen avant de dÃ©placer
     if (displayWin.isFullScreen()) displayWin.setFullScreen(false);
 
     const width = wantFull ? b.width : 900;
@@ -163,7 +165,7 @@ function broadcastState() {
 ipcMain.handle("app:getDisplays", () => {
     return screen.getAllDisplays().map(d => ({
         id: d.id,
-        label: `${d.id} — ${d.size.width}x${d.size.height} (${d.bounds.x},${d.bounds.y})`
+        label: `${d.id} â€” ${d.size.width}x${d.size.height} (${d.bounds.x},${d.bounds.y})`
     }));
 });
 
@@ -235,3 +237,4 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();
 });
+
