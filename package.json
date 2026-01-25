@@ -1,0 +1,31 @@
+{
+	"name": "code-timer",
+	"version": "1.0.0",
+	"main": "main.js",
+	"private": true,
+	"description": "Event stage timer with control + display window",
+	"scripts": {
+		"start": "electron .",
+		"dist": "electron-builder --dir",
+		"build": "electron-builder"
+	},
+	"devDependencies": {
+		"electron": "^32.0.0",
+		"electron-builder": "^24.13.3"
+	},
+	"build": {
+		"appId": "com.codetimer.app",
+		"productName": "CodeTimer",
+		"files": [
+			"main.js",
+			"preload.js",
+			"renderer/**/*"
+		],
+		"directories": {
+			"buildResources": "build"
+		},
+		"win": {
+			"target": "portable"
+		}
+	}
+}

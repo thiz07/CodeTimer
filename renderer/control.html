@@ -1,0 +1,91 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeTimer — Contrôle</title>
+    <link rel="stylesheet" href="control.css">
+</head>
+<body>
+    <h1>CodeTimer — Réglages</h1>
+
+    <section class="card">
+        <h2>Fenêtre retour</h2>
+        <div class="row">
+            <button id="btnOpenDisplay">Ouvrir fenêtre Timer</button>
+            <button id="btnCloseDisplay" class="secondary">Fermer</button>
+        </div>
+
+        <label>Écran (monitor)</label>
+        <select id="monitorSelect"></select>
+
+        <label>Mode d’affichage</label>
+        <select id="modeSelect">
+            <option value="true">Plein écran</option>
+            <option value="false">Fenêtré</option>
+        </select>
+    </section>
+
+    <section class="card">
+        <h2>Timer</h2>
+
+        <div class="grid2">
+            <div>
+                <label>Durée (MM:SS)</label>
+                <div class="row">
+                    <input id="durMin" type="number" min="0" max="999" value="15">
+                    <span class="colon">:</span>
+                    <input id="durSec" type="number" min="0" max="59" value="00">
+                </div>
+            </div>
+
+            <div>
+                <label>Seuil clignotement (MM:SS)</label>
+                <div class="row">
+                    <input id="warnMin" type="number" min="0" max="999" value="3">
+                    <span class="colon">:</span>
+                    <input id="warnSec" type="number" min="0" max="59" value="00">
+                </div>
+                <label class="inline">
+                    <input id="blinkEnabled" type="checkbox" checked />
+                    Activer clignotement rouge
+                </label>
+            </div>
+        </div>
+
+        <div class="row">
+            <button id="btnApply" class="secondary">Appliquer réglages</button>
+            <button id="btnReset" class="secondary">Reset</button>
+        </div>
+
+        <div class="row">
+            <button id="btnStart" class="primary">Start</button>
+            <button id="btnPause">Pause</button>
+        </div>
+
+        <div class="status">
+            <div>Temps restant : <span id="remaining">--:--</span></div>
+            <div>État : <span id="running">STOP</span></div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Style</h2>
+
+        <label>Fond</label>
+        <select id="bgMode">
+            <option value="transparent">Transparent</option>
+            <option value="color">Couleur (chroma)</option>
+        </select>
+
+        <label>Couleur de fond (si “Couleur”)</label>
+        <input id="bgColor" type="color" value="#00ff00">
+
+        <label>Échelle police</label>
+        <input id="fontScale" type="range" min="0.6" max="2.2" step="0.05" value="1.0">
+        <div class="hint">Astuce : si tu incrustes via chroma, mets un vert/bleu franc.</div>
+    </section>
+
+    <script src="control.js"></script>
+</body>
+</html>
