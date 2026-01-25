@@ -108,6 +108,18 @@ function createDisplayWindow() {
 
     displayWin.on("closed", () => {
         displayWin = null;
+        displayWin.on("move", () => {
+  if (displayWin && !displayWin.isFullScreen()) {
+    lastWindowedBounds = displayWin.getBounds();
+  }
+});
+
+displayWin.on("resize", () => {
+  if (displayWin && !displayWin.isFullScreen()) {
+    lastWindowedBounds = displayWin.getBounds();
+  }
+});
+
     });
 }
 
@@ -237,4 +249,5 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();
 });
+
 
