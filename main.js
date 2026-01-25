@@ -135,17 +135,38 @@ function placeDisplayWindow() {
     // sortir du fullscreen avant de déplacer
     if (displayWin.isFullScreen()) displayWin.setFullScreen(false);
 
-    const width = wantFull ? b.width : 900;
-    const height = wantFull ? b.height : 500;
+    function placeDisplayWindow() {
+  if (!displayWin) return;
 
-    const x = wantFull ? b.x : Math.round(b.x + (b.width - width) / 2);
-    const y = wantFull ? b.y : Math.round(b.y + (b.height - height) / 2);
+  const target = getTargetDisplay();
+  timerState.monitorId = target.id;
 
-    displayWin.setBounds({ x, y, width, height }, false);
+  const b = target.bounds;
+  const wantFull = !!timerState.fullscreen;
 
-    if (wantFull) displayWin.setFullScreen(true);
+  if (displayWin.isFullScreen()) displayWin.setFullScreen(false);
+
+  if (!wantFull) {
+    // ✅ En fenêtré : on garde la position/taille que TU as choisies
+    if (lastWindowedBounds) {
+      displayWin.setBounds(lastWindowedBounds, false);
+    } else {
+      // première fois seulement : taille par défaut centrée
+      const width = 900;
+      const height = 500;
+      const x = Math.round(b.x + (b.width - width) / 2);
+      const y = Math.round(b.y + (b.height - height) / 2);
+      displayWin.setBounds({ x, y, width, height }, false);
+    }
 
     displayWin.setAlwaysOnTop(true, "screen-saver");
+    return;
+  }
+
+  // ✅ Plein écran : on colle à l'écran choisi
+  displayWin.setBounds({ x: b.x, y: b.y, width: b.width, height: b.height }, false);
+  displayWin.setFullScreen(true);
+  displayWin.setAlwaysOnTop(true, "screen-saver");
 }
 
 // --------- Timer logic ---------
@@ -249,5 +270,6 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();
 });
+
 
 
