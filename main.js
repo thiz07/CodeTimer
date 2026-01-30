@@ -26,6 +26,7 @@ let displayWin = null;
 let timerState = {
   durationMs: 15 * 60 * 1000,
   remainingMs: 15 * 60 * 1000,
+  overtimeMs: 0,
   running: false,
   endTime: 0,
   warnMs: 3 * 60 * 1000,
@@ -186,21 +187,25 @@ function placeDisplayWindow(force = false) {
 }
 
 function startTicker() {
-  if (tickInterval) return;
-  tickInterval = setInterval(() => {
-    if (!timerState.running) return;
+    if (tickInterval) return;
+    tickInterval = setInterval(() => {
+        if (!timerState.running) return;
 
-    const now = Date.now();
-    timerState.remainingMs = Math.max(0, timerState.endTime - now);
+        const now = Date.now();
+        const diff = timerState.endTime - now; // positif = reste du temps / négatif = dépassement
 
-    broadcastState();
+        if (diff >= 0) {
+            timerState.remainingMs = diff;
+            timerState.overtimeMs = 0;
+        } else {
+            timerState.remainingMs = 0;
+            timerState.overtimeMs = -diff;
+        }
 
-    if (timerState.remainingMs <= 0) {
-      timerState.running = false;
-      broadcastState();
-    }
-  }, 100);
+        broadcastState();
+    }, 100);
 }
+
 
 function broadcastState() {
   if (controlWin) controlWin.webContents.send("timer:state", timerState);
@@ -275,9 +280,11 @@ ipcMain.handle("timer:setConfig", (_evt, cfg) => {
   timerState.warnMs = Math.max(0, Number(timerState.warnMs) || 0);
   timerState.fontScale = Math.min(3, Math.max(0.3, Number(timerState.fontScale) || 1.0));
 
-  if (!timerState.running) {
-    timerState.remainingMs = timerState.durationMs;
-  }
+    if (!timerState.running) {
+        timerState.remainingMs = timerState.durationMs;
+        timerState.overtimeMs = 0;
+    }
+
 
   // repositionner seulement si ecran ou fullscreen change
   const monitorChanged = (cfg.monitorId != null && Number(cfg.monitorId) !== prevMonitorId);
@@ -293,28 +300,54 @@ ipcMain.handle("timer:setConfig", (_evt, cfg) => {
 });
 
 ipcMain.handle("timer:reset", () => {
-  timerState.running = false;
-  timerState.remainingMs = timerState.durationMs;
-  broadcastState();
-  return timerState;
+    timerState.running = false;
+    timerState.remainingMs = timerState.durationMs;
+    timerState.overtimeMs = 0; // ✅
+    broadcastState();
+    return timerState;
 });
+
 
 ipcMain.handle("timer:start", () => {
-  if (timerState.remainingMs <= 0) timerState.remainingMs = timerState.durationMs;
-  timerState.running = true;
-  timerState.endTime = Date.now() + timerState.remainingMs;
-  startTicker();
-  broadcastState();
-  return timerState;
+    if (timerState.running) return timerState;
+
+    const ot = Number(timerState.overtimeMs) || 0;
+
+    // Si on est à 0 sans overtime -> on redémarre un nouveau timer normal
+    if (timerState.remainingMs <= 0 && ot <= 0) {
+        timerState.remainingMs = timerState.durationMs;
+    }
+
+    timerState.running = true;
+
+    // Si on reprend en overtime, endTime doit rester "dans le passé"
+    timerState.endTime = Date.now() + timerState.remainingMs - ot;
+
+    startTicker();
+    broadcastState();
+    return timerState;
 });
 
+
 ipcMain.handle("timer:pause", () => {
-  if (!timerState.running) return timerState;
-  timerState.remainingMs = Math.max(0, timerState.endTime - Date.now());
-  timerState.running = false;
-  broadcastState();
-  return timerState;
+    if (!timerState.running) return timerState;
+
+    const now = Date.now();
+    const diff = timerState.endTime - now;
+
+    if (diff >= 0) {
+        timerState.remainingMs = diff;
+        timerState.overtimeMs = 0;
+    } else {
+        timerState.remainingMs = 0;
+        timerState.overtimeMs = -diff;
+    }
+
+    timerState.running = false;
+    broadcastState();
+    return timerState;
 });
+
 
 // -------------- lifecycle --------------
 
