@@ -27,3 +27,28 @@ body { background: transparent; overflow: hidden; }
   100% { color:#ff2b2b; }
 }
 .zero { color:#ff2b2b; }
+
+#wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+#overtime {
+    display: none;
+    font-family: ui-sans-serif, system-ui, Arial, sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    font-size: min(12vw, 110px);
+    line-height: 1;
+    color: #ff2b2b;
+    text-shadow: 0 6px 30px rgba(0,0,0,0.55);
+    opacity: 0.95;
+}
+
+    #overtime.show {
+        display: block;
+    }
+
