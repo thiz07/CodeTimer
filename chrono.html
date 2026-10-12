@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Chrono sportif</title>
+<style>
+  :root { --fg: #ffffff; --warn: #ff3b30; --panel-h: 240px; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+  body { display: flex; flex-direction: column; font-family: "Segoe UI", Arial, sans-serif; }
+
+  /* ---------- ZONE AFFICHÉE (envoyée à Resolume) ---------- */
+  #display {
+    flex: 1; min-height: 0; background: #000;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  #t {
+    color: var(--fg); font-family: "Arial Black", "Segoe UI Black", Arial, sans-serif;
+    font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1;
+    white-space: nowrap; transform-origin: center;
+  }
+  #t .dec { opacity: .9; }
+  #t.warn { color: var(--warn); }
+  #t.done { color: var(--warn); animation: blink .5s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ---------- PANNEAU DE CONTRÔLE (à rogner dans OBS) ---------- */
+  #panel {
+    height: var(--panel-h); flex: none; background: #1b1d22; color: #e8e8e8;
+    border-top: 3px solid #3a3f4a; padding: 18px 24px;
+    display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: center;
+  }
+  .group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  button {
+    font: 600 22px "Segoe UI", Arial, sans-serif; color: #fff; background: #2d323c;
+    border: 2px solid #454c59; border-radius: 12px; padding: 14px 22px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 130px;
+  }
+  button:hover { background: #3a414d; }
+  button:active { transform: translateY(1px); }
+  button kbd {
+    font: 600 15px Consolas, monospace; color: #aab2c0; background: #111317;
+    border: 1px solid #454c59; border-radius: 6px; padding: 2px 8px;
+  }
+  #bStart { background: #1f7a3a; border-color: #2ea352; min-width: 190px; font-size: 26px; }
+  #bStart.running { background: #9a6a10; border-color: #c98d1c; }
+  #bReset { background: #7a2323; border-color: #a33232; }
+  button.on { outline: 3px solid #4d9fff; }
+  .box { display: flex; flex-direction: column; gap: 8px; font-size: 17px; color: #aab2c0; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  input[type=number] {
+    width: 86px; font: 600 26px Consolas, monospace; text-align: center; color: #fff;
+    background: #111317; border: 2px solid #454c59; border-radius: 10px; padding: 8px;
+  }
+  input[type=color] { width: 60px; height: 48px; border: none; background: none; cursor: pointer; }
+  .status { font-size: 18px; color: #aab2c0; text-align: right; line-height: 1.6; }
+  .status b { color: #fff; }
+  button.small { min-width: 0; padding: 8px 12px; font-size: 18px; }
+</style>
+</head>
+<body>
+
+<div id="display"><div id="t">00:00.0</div></div>
+
+<div id="panel">
+  <div class="group">
+    <button id="bStart">▶ Départ<kbd>ESPACE</kbd></button>
+    <button id="bReset">↺ Reset<kbd>R</kbd></button>
+  </div>
+
+  <div class="group">
+    <button id="bMode">⇅ Mode<kbd>M</kbd></button>
+    <button id="bPrec">1/10 ↔ 1/100<kbd>D</kbd></button>
+    <div class="box" id="durBox">
+      Durée compte à rebours
+      <div class="row">
+        <input type="number" id="inMin" min="0" max="599" value="5"> :
+        <input type="number" id="inSec" min="0" max="59" value="00">
+      </div>
+    </div>
+    <div class="box">
+      Réglage rapide
+      <div class="row">
+        <button class="small" data-add="-60000">−1 min<kbd>↓</kbd></button>
+        <button class="small" data-add="60000">+1 min<kbd>↑</kbd></button>
+        <button class="small" data-add="-10000">−10 s<kbd>←</kbd></button>
+        <button class="small" data-add="10000">+10 s<kbd>→</kbd></button>
+      </div>
+    </div>
+    <div class="box">
+      Couleur
+      <div class="row">
+        <input type="color" id="inColor" value="#ffffff">
+        <button class="small on" id="bWarn">Rouge fin<kbd>W</kbd></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const el = $("t"), disp = $("display");
+
+let mode = "down";          // "down" = compte à rebours, "up" = chrono
+let duration = 5 * 60000;   // ms
+let precision = 1;          // 1 = dixièmes, 2 = centièmes
+let warnOn = true;          // rouge sur les 10 dernières secondes
+let running = false, elapsed = 0, startedAt = 0;
+
+const now = () => running ? elapsed + (performance.now() - startedAt) : elapsed;
+const pad = n => String(n).padStart(2, "0");
+
+function toggle() {
+  if (mode === "down" && now() >= duration) return;
+  if (running) { elapsed = now(); running = false; }
+  else { startedAt = performance.now(); running = true; }
+  refreshPanel();
+}
+function reset() { running = false; elapsed = 0; refreshPanel(); }
+function setMode(m) { mode = m; reset(); }
+function setDuration(ms) {
+  if (running) return;
+  duration = Math.min(Math.max(ms, 1000), 599 * 60000 + 59000);
+  $("inMin").value = Math.floor(duration / 60000);
+  $("inSec").value = pad(Math.floor(duration % 60000 / 1000));
+  if (mode === "down") elapsed = 0;
+  refreshPanel();
+}
+
+function format(ms) {
+  const unit = precision === 2 ? 10 : 100;
+  // Compte à rebours : arrondi au-dessus (on n'affiche 0 qu'à la vraie fin)
+  let u = mode === "down" ? Math.ceil(ms / unit) : Math.floor(ms / unit);
+  const perS = 1000 / unit;
+  const dec = u % perS; let s = Math.floor(u / perS);
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); s = s % 60;
+  const main = (h ? h + ":" + pad(m) : pad(m)) + ":" + pad(s);
+  const d = precision === 2 ? pad(dec) : String(dec);
+  return main + '<span class="dec">.' + d + "</span>";
+}
+
+// Ajuste la taille du texte pour remplir ~90 % de la zone
+let lastLen = 0;
+function fit() {
+  el.style.fontSize = "100px";
+  const r = Math.min(disp.clientWidth * 0.92 / el.scrollWidth, disp.clientHeight * 0.8 / el.scrollHeight);
+  el.style.fontSize = (100 * r) + "px";
+}
+
+function render() {
+  let e = now();
+  if (mode === "down" && running && e >= duration) { elapsed = duration; running = false; e = duration; refreshPanel(); }
+  const t = mode === "down" ? Math.max(duration - e, 0) : e;
+  el.innerHTML = format(t);
+  const len = el.textContent.length;
+  if (len !== lastLen) { lastLen = len; fit(); }
+  const done = mode === "down" && t <= 0;
+  el.className = done ? "done" : (mode === "down" && warnOn && t <= 10000 && (running || elapsed > 0)) ? "warn" : "";
+  requestAnimationFrame(render);
+}
+
+function refreshPanel() {
+  const b = $("bStart");
+  b.classList.toggle("running", running);
+  b.firstChild.nodeValue = running ? "❚❚ Pause" : (elapsed > 0 ? "▶ Reprendre" : "▶ Départ");
+  $("bMode").firstChild.nodeValue = mode === "down" ? "⇅ Compte à rebours" : "⇅ Chrono";
+  $("bPrec").firstChild.nodeValue = precision === 1 ? "Dixièmes (1/10)" : "Centièmes (1/100)";
+  $("bWarn").classList.toggle("on", warnOn);
+  $("durBox").style.opacity = mode === "down" ? 1 : .35;
+  $("inMin").disabled = $("inSec").disabled = running;
+  $("status").innerHTML =
+    "Mode : <b>" + (mode === "down" ? "Compte à rebours" : "Chrono") + "</b><br>" +
+    "État : <b>" + (running ? "En cours" : elapsed > 0 ? "En pause" : "Prêt") + "</b><br>" +
+    "Précision : <b>" + (precision === 1 ? "1/10 s" : "1/100 s") + "</b>";
+  lastLen = 0;
+}
+
+// --- Boutons (on retire le focus pour que ESPACE ne "reclique" pas le bouton)
+function btn(id, fn) { $(id).addEventListener("click", e => { fn(); e.currentTarget.blur(); }); }
+btn("bStart", toggle);
+btn("bReset", reset);
+btn("bMode", () => setMode(mode === "down" ? "up" : "down"));
+btn("bPrec", () => { precision = precision === 1 ? 2 : 1; refreshPanel(); });
+btn("bWarn", () => { warnOn = !warnOn; refreshPanel(); });
+document.querySelectorAll("[data-add]").forEach(b =>
+  b.addEventListener("click", () => { setDuration(duration + +b.dataset.add); b.blur(); }));
+["inMin", "inSec"].forEach(id => $(id).addEventListener("change", () =>
+  setDuration((+$("inMin").value || 0) * 60000 + (+$("inSec").value || 0) * 1000)));
+$("inColor").addEventListener("input", e => document.documentElement.style.setProperty("--fg", e.target.value));
+disp.addEventListener("click", toggle);
+
+// --- Raccourcis clavier
+document.addEventListener("keydown", ev => {
+  if (ev.target.tagName === "INPUT" && ev.key !== "Enter") return;
+  if (ev.target.tagName === "INPUT") { ev.target.blur(); return; }
+  const k = ev.key.toLowerCase();
+  if (k === " ") { ev.preventDefault(); toggle(); }
+  else if (k === "r") reset();
+  else if (k === "m") setMode(mode === "down" ? "up" : "down");
+  else if (k === "d") { precision = precision === 1 ? 2 : 1; refreshPanel(); }
+  else if (k === "w") { warnOn = !warnOn; refreshPanel(); }
+  else if (k === "arrowup") setDuration(duration + 60000);
+  else if (k === "arrowdown") setDuration(duration - 60000);
+  else if (k === "arrowright") setDuration(duration + 10000);
+  else if (k === "arrowleft") setDuration(duration - 10000);
+});
+
+window.addEventListener("resize", () => { lastLen = 0; });
+refreshPanel();
+render();
+</script>
+</body>
+</html>
